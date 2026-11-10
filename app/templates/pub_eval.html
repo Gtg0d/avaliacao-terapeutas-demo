@@ -1,0 +1,53 @@
+{% extends "pub_base.html" %}
+{% from "_avatar.html" import avatar %}
+{% block title %}{{ item.a.therapist.name }}{% endblock %}
+{% block body %}
+{% set t = item.a.therapist %}
+<div class="progress">
+  <div class="bar"><i style="width:{{ (done / total * 100)|round|int }}%"></i></div>
+  <span class="num">{{ pos }} de {{ total }}</span>
+</div>
+<form method="post" class="card">
+  <div class="who">
+    {{ avatar(t, "l") }}
+    <h1>{{ t.name }}</h1>
+    <div class="therapy">{{ item.a.therapy }}</div>
+    {% if item.a.for_guardian %}<p class="note" style="margin:.8rem 0 0">Este atendimento é com <strong>você, responsável</strong>. Avalie como {{ t.name.split()[0] }} atende você.</p>{% endif %}
+  </div>
+  {% if error %}<div class="flash erro" role="alert" style="margin-top:1rem">{{ error }}</div>{% endif %}
+  {% for q in questions %}
+  <fieldset class="q">
+    <legend>{{ q.text }}</legend>
+    {% if q.kind == "nota" %}
+    <div class="scale">
+      {% for n in range(1, 6) %}
+      <label><input type="radio" name="q{{ q.id }}" value="{{ n }}" required
+        {% if answers.get(q.id) and answers[q.id].score == n %}checked{% endif %}><span>{{ n }}</span></label>
+      {% endfor %}
+    </div>
+    <div class="ends"><span>Muito insatisfeito</span><span>Muito satisfeito</span></div>
+    {% elif q.kind == "simnao" %}
+    {% set cur = answers.get(q.id) %}
+    <div class="scale yn {{ 'three' if q.allow_ns }}">
+      <label><input type="radio" name="q{{ q.id }}" value="sim" required {% if cur and cur.score == 1 %}checked{% endif %}><span>Sim</span></label>
+      <label><input type="radio" name="q{{ q.id }}" value="nao" {% if cur and cur.score == 0 %}checked{% endif %}><span>Não</span></label>
+      {% if q.allow_ns %}<label><input type="radio" name="q{{ q.id }}" value="ns" {% if cur and cur.text == "ns" %}checked{% endif %}><span class="ns">Não sei dizer</span></label>{% endif %}
+    </div>
+    {% else %}
+    <textarea name="q{{ q.id }}" maxlength="2000" aria-label="{{ q.text }}">{{ answers[q.id].text if answers.get(q.id) else "" }}</textarea>
+    {% endif %}
+  </fieldset>
+  {% endfor %}
+  <div class="field" style="margin-top:1.3rem">
+    <label for="comment">Observação ou sugestão sobre {{ t.name.split()[0] }} <span class="muted" style="font-weight:400">(opcional)</span></label>
+    <textarea id="comment" name="comment" maxlength="2000">{{ comment if comment is defined else (ev.comment if ev else "") }}</textarea>
+  </div>
+  <button class="btn block" name="action" value="save">Salvar e continuar</button>
+  <div class="center" style="margin-top:.5rem">
+    <button class="linkbtn" name="action" value="skip" formnovalidate>{% if item.a.for_guardian %}Não sou atendido(a) por {{ t.name.split()[0] }}{% else %}{{ g.patient.first_name }} não é atendido(a) por {{ t.name.split()[0] }}{% endif %}</button>
+  </div>
+</form>
+<div class="center small">
+  {% if prev_id %}<a href="/a/{{ token }}/{{ prev_id }}">← Anterior</a> · {% endif %}<a href="/a/{{ token }}">Ver todos os terapeutas</a>
+</div>
+{% endblock %}

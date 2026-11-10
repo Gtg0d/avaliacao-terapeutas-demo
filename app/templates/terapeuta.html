@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_avatar.html" import avatar %}
+{% block title %}{{ t.name }}{% endblock %}
+{% block body %}
+<p class="small"><a href="/painel/terapeutas">← Terapeutas</a></p>
+<div class="head"><h1>{{ t.name }}</h1>
+{% if user.role in ("admin", "direcao") %}<a class="btn sec" href="/painel/resultados/terapeuta/{{ t.id }}">Ver desempenho</a>{% endif %}</div>
+<div class="grid2">
+<form method="post" enctype="multipart/form-data" class="card">
+  <div class="center" style="margin-bottom:1rem">{{ avatar(t, "l") }}</div>
+  <div class="field"><label for="name">Nome (como aparece para os pais)</label><input id="name" type="text" name="name" value="{{ t.name }}" required></div>
+  <div class="field"><label for="full">Nome completo</label><input id="full" type="text" name="full_name" value="{{ t.full_name }}"></div>
+  <div class="field"><label for="sector">Setor (se atende em dois, separe com “/”)</label><input id="sector" type="text" name="sector" value="{{ t.sector }}" list="sectors">
+    <datalist id="sectors">{% for s in sectors %}<option value="{{ s }}">{% endfor %}</datalist></div>
+  <div class="field"><label for="photo">Foto (JPG ou PNG; o rosto fica melhor centralizado)</label><input id="photo" type="file" name="photo" accept="image/*"></div>
+  <div class="field"><label class="check"><input type="checkbox" name="active" value="1" {{ "checked" if t.active }}> Ativo (aparece para os responsáveis)</label></div>
+  <div class="actions">
+    <button class="btn">Salvar</button>
+    {% if t.has_photo %}<button class="btn ghost" name="action" value="nophoto" formnovalidate>Tirar foto</button>{% endif %}
+    <button class="btn danger" name="action" value="remove" formnovalidate data-confirm="Remover {{ t.name }}? Se já houver avaliações, o terapeuta só é desativado.">Remover</button>
+  </div>
+</form>
+<section class="card">
+  <h2>Pacientes atendidos <span class="badge">{{ assigns|length }}</span></h2>
+  <ul class="plist">{% for a in assigns|sort(attribute="patient.name") %}<li><a href="/painel/pacientes/{{ a.patient.id }}">{{ a.patient.name }}</a> <span class="muted">· {{ a.therapy }}</span></li>{% else %}<li class="muted">Nenhum.</li>{% endfor %}</ul>
+</section>
+</div>
+{% endblock %}

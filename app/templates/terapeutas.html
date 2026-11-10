@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_avatar.html" import avatar %}
+{% block title %}Terapeutas{% endblock %}
+{% block body %}
+<h1>Terapeutas</h1>
+<form method="post" class="card row">
+  <div class="grow"><label for="n">Adicionar terapeuta</label><input id="n" type="text" name="name" placeholder="Nome como os pais conhecem" required></div>
+  <div class="grow"><label for="s">Setor</label><input id="s" type="text" name="sector" list="sectors" placeholder="Ex.: Fonoaudiologia">
+    <datalist id="sectors">{% for s in sectors %}<option value="{{ s }}">{% endfor %}</datalist></div>
+  <button class="btn">Adicionar</button>
+</form>
+<form method="post" action="/painel/terapeutas/fotos" enctype="multipart/form-data" class="card row">
+  <div class="grow"><label for="ph">Enviar fotos em lote</label><input id="ph" type="file" name="photos" accept="image/*" multiple required>
+    <p class="small muted" style="margin:.3rem 0 0">Selecione várias de uma vez. O nome de cada arquivo deve ser o nome do terapeuta como está na lista abaixo (ex.: <code>Raquel Moura.jpg</code>).</p></div>
+  <button class="btn sec">Enviar fotos</button>
+</form>
+<div class="card tablewrap"><table>
+  <thead><tr><th>Terapeuta</th><th>Setor</th><th class="r">Pacientes</th><th>Foto</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  {% for t in ts %}
+  <tr class="{{ '' if t.active else 'off' }}">
+    <td><span style="display:inline-flex;align-items:center;gap:.6rem">{{ avatar(t) }} <span><a href="/painel/terapeutas/{{ t.id }}">{{ t.name }}</a>{% if t.full_name %}<div class="small muted">{{ t.full_name }}</div>{% endif %}</span></span></td>
+    <td>{{ t.sector or "" }}{% if not t.sector %}<span class="badge warn">Falta setor</span>{% endif %}</td>
+    <td class="r num">{{ n.get(t.id, 0) }}</td>
+    <td>{% if t.has_photo %}<span class="badge ok">Ok</span>{% else %}<span class="badge warn">Falta foto</span>{% endif %}</td>
+    <td>{% if t.active %}<span class="badge ok">Ativo</span>{% else %}<span class="badge">Inativo</span>{% endif %}</td>
+    <td><a class="btn ghost sm" href="/painel/terapeutas/{{ t.id }}">Editar</a></td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="muted">Nenhum terapeuta cadastrado.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

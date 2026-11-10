@@ -1,0 +1,50 @@
+{% extends "pub_base.html" %}
+{% from "_avatar.html" import avatar %}
+{% block body %}
+{% set total = items|length %}
+{% if not next_id %}
+<div class="card center">
+  <div class="big-ok" aria-hidden="true">✓</div>
+  <h1>Avaliação concluída. Obrigado!</h1>
+  <p class="muted">Suas respostas foram registradas e ajudam a cuidar ainda melhor de {{ g.patient.first_name }}.
+  Se quiser mudar alguma, é só tocar no terapeuta abaixo enquanto a avaliação estiver aberta.</p>
+</div>
+<form method="post" action="/a/{{ token }}/clinica" class="card">
+  <div class="field">
+    <label for="cc">Quer deixar uma observação ou sugestão sobre a {{ clinic }}? <span class="muted" style="font-weight:400">(opcional)</span></label>
+    <textarea id="cc" name="clinic_comment" maxlength="3000">{{ sub.clinic_comment }}</textarea>
+  </div>
+  {% if saved %}<p class="flash" role="status">Recebemos a sua mensagem. Obrigado!</p>{% endif %}
+  <button class="btn sec block">{{ "Atualizar mensagem" if sub.clinic_comment else "Enviar mensagem" }}</button>
+</form>
+{% else %}
+<div class="card">
+  <h1>Olá{% if g.name %}, {{ g.name.split()[0] }}{% endif %}!</h1>
+  <p>Queremos saber como você avalia os terapeutas que atendem <strong>{{ g.patient.first_name }}</strong>.
+  São {{ total }} profissionais, com poucas perguntas rápidas para cada um.</p>
+  <p class="note">Os terapeutas não veem as suas respostas. Só a direção da clínica tem acesso,
+  para acompanhar e melhorar o atendimento.</p>
+  <div class="progress"><div class="bar"><i style="width:{{ (done / total * 100)|round|int }}%"></i></div>
+    <span class="num">{{ done }} de {{ total }}</span></div>
+  <a class="btn block" href="/a/{{ token }}/{{ next_id }}">{{ "Continuar avaliação" if done else "Começar avaliação" }}</a>
+  <p class="small muted center" style="margin:.8rem 0 0">Pode parar quando quiser: o que já foi respondido fica salvo neste link.</p>
+</div>
+{% endif %}
+<div class="card">
+  <h2>Terapeutas de {{ g.patient.first_name }}</h2>
+  {% for therapy, group in items|groupby("a.therapy") %}
+  <div class="group">{{ therapy }}</div>
+  <ul class="tlist">
+    {% for i in group %}
+    <li><a href="/a/{{ token }}/{{ i.a.id }}">
+      {{ avatar(i.a.therapist) }}
+      <span class="grow"><span class="name">{{ i.a.therapist.name }}</span>{% if i.a.for_guardian %}<span class="sub">Atende você, responsável</span>{% endif %}</span>
+      {% if not i.ev %}<span class="badge">Falta avaliar</span>
+      {% elif i.ev.status == "skipped" %}<span class="badge warn">Não atende</span>
+      {% else %}<span class="badge ok">Avaliado</span>{% endif %}
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+</div>
+{% endblock %}

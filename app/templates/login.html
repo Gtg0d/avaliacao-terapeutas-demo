@@ -1,0 +1,12 @@
+{% extends "pub_base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block body %}
+<form method="post" class="card">
+  <h1>Painel de avaliações</h1>
+  <p class="muted">Acesso da equipe da clínica.</p>
+  {% if error %}<div class="flash erro" role="alert">{{ error }}</div>{% endif %}
+  <div class="field"><label for="u">Usuário</label><input id="u" type="text" name="username" autocomplete="username" required autofocus></div>
+  <div class="field"><label for="p">Senha</label><input id="p" type="password" name="password" autocomplete="current-password" required></div>
+  <button class="btn block">Entrar</button>
+</form>
+{% endblock %}

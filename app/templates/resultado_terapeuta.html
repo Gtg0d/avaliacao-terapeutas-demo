@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_avatar.html" import avatar %}
+{% block title %}Desempenho de {{ t.name }}{% endblock %}
+{% block body %}
+<p class="small"><a href="/painel/resultados">← Resultados</a></p>
+<div class="head"><h1 style="display:flex;align-items:center;gap:.7rem">{{ avatar(t) }} {{ t.full_name or t.name }} <span class="badge">{{ t.sector or "Sem setor" }}</span></h1></div>
+{% if not hist %}<p class="card muted">Este terapeuta ainda não recebeu avaliações.</p>{% else %}
+<section class="card">
+  <h2>Evolução por rodada</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Rodada</th><th class="r">Índice</th><th class="r">Variação</th><th class="r">Avaliações</th>
+      {% for q in questions %}<th class="r" title="{{ q.text }}">P{{ loop.index }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for h in hist %}
+    <tr><td>{{ h.round.name }}</td>
+      <td class="r num"><span class="meter"><i style="width:{{ h.avg|round|int if h.avg is not none else 0 }}%"></i></span><strong>{{ h.avg|pct }}</strong></td>
+      <td class="r num">{% if loop.index0 > 0 and h.avg is not none and hist[loop.index0 - 1].avg is not none %}{% set d = h.avg - hist[loop.index0 - 1].avg %}<span class="badge {{ 'ok' if d >= 0.5 else ('bad' if d <= -0.5 else '') }}">{{ "+" if d >= 0.5 }}{{ d|round|int }} p.p.</span>{% else %}–{% endif %}</td>
+      <td class="r num">{{ h.n }}{% if h.low %} <span class="badge warn">poucas</span>{% endif %}</td>
+      {% for q in questions %}<td class="r num">{{ h.q.get(q.id)|qfmt(q.kind) }}</td>{% endfor %}</tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="small muted" style="margin:.8rem 0 0">{% for q in questions %}<strong>P{{ loop.index }}</strong>: {{ q.text }} ({{ "% de Sim" if q.kind == "simnao" else "média de 1 a 5" }}{{ "" if q.in_index else ", não entra no índice" }}){{ " · " if not loop.last }}{% endfor %}</p>
+</section>
+<section class="card">
+  <h2>Comentários</h2>
+  {% for h in hist|reverse %}{% if h.comments %}
+  <div class="group" style="margin-bottom:.5rem">{{ h.round.name }}</div>
+  {% for c in h.comments %}<blockquote class="comment">{{ c.txt }}<div class="small muted">{{ c.who }} · {{ c.therapy }}</div></blockquote>{% endfor %}
+  {% endif %}{% endfor %}
+  {% if not hist|selectattr("comments")|list %}<p class="muted">Nenhum comentário.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

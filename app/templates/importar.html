@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Importar{% endblock %}
+{% block body %}
+<p class="small"><a href="/painel/pacientes">← Pacientes</a></p>
+<h1>Importar planilha</h1>
+{% if report %}
+<div class="flash">Importação concluída: {{ report.patients }} pacientes novos, {{ report.guardians }} responsáveis, {{ report.therapists }} terapeutas e {{ report.links }} vínculos adicionados.</div>
+{% if report.warn %}<div class="card"><h2>Para conferir</h2><ul class="plist">{% for w in report.warn %}<li>{{ w }}</li>{% endfor %}</ul></div>{% endif %}
+{% endif %}
+<div class="card">
+  <p>Uma linha por terapia de cada criança, com as colunas: {% for c in cols %}<strong>{{ c }}</strong>{{ ", " if not loop.last }}{% endfor %}.
+  Repita o nome do paciente em cada linha. Uma segunda aba chamada “Terapeutas” ({% for c in cols_t %}{{ c }}{{ ", " if not loop.last }}{% endfor %}) é opcional e preenche o nome completo e os setores de cada terapeuta. Só “Paciente” é obrigatório; o que faltar aparece como pendência no Início.</p>
+  <p class="muted">A importação só acrescenta: quem já está cadastrado não é duplicado nem apagado. Para tirar um terapeuta de uma criança, use a página do paciente.</p>
+  <p><a href="/painel/importar/modelo">Baixar planilha modelo</a></p>
+  <form method="post" enctype="multipart/form-data" class="row">
+    <div class="grow"><label for="f">Arquivo .xlsx</label><input id="f" type="file" name="file" accept=".xlsx" required></div>
+    <button class="btn">Importar</button>
+  </form>
+</div>
+{% endblock %}

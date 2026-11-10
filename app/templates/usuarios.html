@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block body %}
+<h1>Usuários do painel</h1>
+<p class="muted"><strong>Administrador</strong>: tudo. <strong>Direção</strong>: resultados, rodadas, perguntas e cadastros. <strong>Recepção</strong>: cadastros, links e acompanhamento, sem ver notas.</p>
+<form method="post" class="card row">
+  <div class="grow"><label for="n">Nome</label><input id="n" type="text" name="name" required></div>
+  <div class="grow"><label for="u">Login</label><input id="u" type="text" name="username" required autocomplete="off"></div>
+  <div><label for="r">Perfil</label><select id="r" name="role">{% for k, v in ROLES.items() %}<option value="{{ k }}" {{ "selected" if k == "recepcao" }}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="grow"><label for="p">Senha (mín. 8)</label><input id="p" type="password" name="password" minlength="8" required autocomplete="new-password"></div>
+  <button class="btn">Criar usuário</button>
+</form>
+<div class="card">
+  {% for u in users %}
+  <form method="post" action="/painel/usuarios/{{ u.id }}" class="row" style="margin-bottom:.8rem">
+    <div class="grow"><label for="n{{ u.id }}">{{ u.username }}</label><input id="n{{ u.id }}" type="text" name="name" value="{{ u.name }}" required></div>
+    <div><label for="r{{ u.id }}">Perfil</label><select id="r{{ u.id }}" name="role">{% for k, v in ROLES.items() %}<option value="{{ k }}" {{ "selected" if k == u.role }}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="grow"><label for="p{{ u.id }}">Nova senha (opcional)</label><input id="p{{ u.id }}" type="password" name="password" autocomplete="new-password"></div>
+    <label class="check" style="min-height:44px"><input type="checkbox" name="active" value="1" {{ "checked" if u.active }}> Ativo</label>
+    <button class="btn sec sm" style="min-height:44px">Salvar</button>
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

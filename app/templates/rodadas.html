@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Rodadas{% endblock %}
+{% block body %}
+<h1>Rodadas de avaliação</h1>
+<p class="muted">Só uma rodada fica aberta por vez. Abrir uma nova encerra a anterior. Os links dos responsáveis são sempre os mesmos.</p>
+<form method="post" class="card row">
+  <div class="grow"><label for="n">Nova rodada</label><input id="n" type="text" name="name" placeholder="Ex.: Novembro/2026 – 2ª quinzena" required></div>
+  <button class="btn">Abrir rodada</button>
+</form>
+<div class="card tablewrap"><table>
+  <thead><tr><th>Rodada</th><th>Situação</th><th>Aberta em</th><th>Encerrada em</th><th class="r">Concluíram</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rounds %}
+  <tr>
+    <td>{{ r.name }}</td>
+    <td><span class="badge {{ 'ok' if r.status == 'open' }}">{{ "Aberta" if r.status == "open" else "Encerrada" }}</span></td>
+    <td class="num">{{ r.created_at|dt }}</td><td class="num">{{ r.closed_at|dt }}</td>
+    <td class="r num">{{ n.get(r.id, 0) }}</td>
+    <td><div class="actions">
+      <a class="btn ghost sm" href="/painel/resultados?rodada={{ r.id }}">Resultados</a>
+      <form method="post" action="/painel/rodadas/{{ r.id }}" class="inline">
+      {% if r.status == "open" %}<button class="btn sec sm" name="action" value="close" data-confirm="Encerrar a rodada? Os responsáveis não poderão mais responder.">Encerrar</button>
+      {% else %}<button class="btn sec sm" name="action" value="open">Reabrir</button>{% endif %}
+      </form>
+    </div></td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="muted">Nenhuma rodada criada ainda.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

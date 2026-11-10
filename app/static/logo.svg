@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 156" role="img" aria-label="Clínica Exemplo">
+  <g transform="translate(78 6)">
+    <rect width="64" height="64" rx="16" fill="#137d3d"/>
+    <path d="M32 50V30" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <path d="M32 34c0-9 6-15 15-15 0 9-6 15-15 15z" fill="#c5e271"/>
+    <path d="M32 40c0-7-5-12-12-12 0 7 5 12 12 12z" fill="#91c853"/>
+  </g>
+  <text x="110" y="104" text-anchor="middle" font-family="system-ui, 'Segoe UI', Roboto, sans-serif" font-size="15" fill="#5d6f6c" letter-spacing="2">CLÍNICA</text>
+  <text x="110" y="138" text-anchor="middle" font-family="system-ui, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="700" fill="#137d3d">Exemplo</text>
+</svg>

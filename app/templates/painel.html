@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Início{% endblock %}
+{% block body %}
+<div class="head">
+  <h1>{% if rnd %}Rodada aberta: {{ rnd.name }}{% else %}Nenhuma rodada aberta{% endif %}</h1>
+  {% if user.role in ("admin", "direcao") %}<a class="btn sec" href="/painel/rodadas">Gerenciar rodadas</a>{% endif %}
+</div>
+{% if not rnd %}
+<p class="card">Enquanto não houver uma rodada aberta, os links dos responsáveis mostram o aviso
+“nenhuma avaliação aberta”. {% if user.role in ("admin", "direcao") %}Abra uma em <a href="/painel/rodadas">Rodadas</a>.{% else %}Quem abre a rodada é a direção.{% endif %}</p>
+{% else %}
+{% set concl = counts["concluido"] %}
+<div class="stats">
+  <a class="stat" href="/painel/acompanhamento?f=concluido"><b>{{ concl }}</b><span>concluíram</span></a>
+  <a class="stat" href="/painel/acompanhamento?f=andamento"><b>{{ counts["andamento"] }}</b><span>pararam no meio</span></a>
+  <a class="stat" href="/painel/acompanhamento?f=abriu"><b>{{ counts["abriu"] }}</b><span>abriram e não responderam</span></a>
+  <a class="stat" href="/painel/acompanhamento?f=nao_abriu"><b>{{ counts["nao_abriu"] }}</b><span>não abriram o link</span></a>
+</div>
+<div class="card">
+  <div class="progress" style="margin:0"><div class="bar"><i style="width:{{ (concl / total * 100)|round|int if total else 0 }}%"></i></div>
+  <span class="num">{{ concl }} de {{ total }} responsáveis</span></div>
+</div>
+{% endif %}
+<div class="grid2">
+  <section class="card">
+    <h2>Cadastro</h2>
+    <p><strong class="num">{{ n_patients }}</strong> pacientes ativos · <strong class="num">{{ n_therapists }}</strong> terapeutas ativos</p>
+    <div class="actions">
+      <a class="btn sec sm" href="/painel/pacientes">Pacientes</a>
+      <a class="btn sec sm" href="/painel/terapeutas">Terapeutas</a>
+      <a class="btn sec sm" href="/painel/importar">Importar planilha</a>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Pendências para completar <span class="badge {{ 'warn' if pend else 'ok' }}">{{ pend|length }}</span></h2>
+    {% if pend %}
+    <ul class="plist">{% for p in pend[:40] %}<li><a href="{{ p.url }}">{{ p.txt }}</a></li>{% endfor %}</ul>
+    {% if pend|length > 40 %}<p class="muted small">e mais {{ pend|length - 40 }}.</p>{% endif %}
+    {% else %}<p class="muted">Tudo completo.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

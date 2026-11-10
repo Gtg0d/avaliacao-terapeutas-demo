@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}Painel{% endblock %} · Avaliações · {{ clinic }}</title>
+<link rel="icon" href="/static/simbolo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css?v=6">
+</head>
+<body>
+{% set path = request.url.path %}
+{% macro nav(url, label) %}<a href="{{ url }}" class="{{ 'on' if (path == url or (url != '/painel' and path.startswith(url))) else '' }}">{{ label }}</a>{% endmacro %}
+<header class="top"><nav class="top-in" aria-label="Menu">
+  <strong class="brand"><img data-egg src="/static/simbolo.svg" alt="" width="30" height="31"> Avaliações · {{ clinic }}</strong>
+  {{ nav("/painel", "Início") }}
+  {{ nav("/painel/acompanhamento", "Acompanhamento") }}
+  {{ nav("/painel/pacientes", "Pacientes") }}
+  {{ nav("/painel/terapeutas", "Terapeutas") }}
+  {% if user.role in ("admin", "direcao") %}
+  {{ nav("/painel/resultados", "Resultados") }}
+  {{ nav("/painel/rodadas", "Rodadas") }}
+  {{ nav("/painel/perguntas", "Perguntas") }}
+  {% endif %}
+  {% if user.role == "admin" %}{{ nav("/painel/usuarios", "Usuários") }}{% endif %}
+  <span class="me">{{ user.name }} ({{ ROLES[user.role] }}) · <a href="/painel/senha">Minha senha</a> · <a href="/sair">Sair</a></span>
+</nav></header>
+<main class="wrap">
+  {% for kind, msg in flashes %}<div class="flash {{ kind }}" role="status">{{ msg }}</div>{% endfor %}
+  {% block body %}{% endblock %}
+  <footer class="credits">Idealizado, pensado e planejado por <strong>Arthur</strong> 👑 · Desenvolvido com <span class="spark" aria-hidden="true">&#9883;&#65038;</span> · {{ clinic }}</footer>
+</main>
+<script>
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-copy]");
+  if (b) {
+    navigator.clipboard.writeText(b.dataset.copy).then(function () {
+      var old = b.textContent; b.textContent = "Copiado ✓";
+      setTimeout(function () { b.textContent = old; }, 1500);
+    });
+  }
+  var c = e.target.closest("[data-confirm]");
+  if (c && !window.confirm(c.dataset.confirm)) e.preventDefault();
+});
+</script>
+<script src="/static/egg.js?v=1" defer></script>
+</body>
+</html>

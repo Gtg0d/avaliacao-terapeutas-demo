@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}Avaliação dos terapeutas{% endblock %} · {{ clinic }}</title>
+<link rel="icon" href="/static/simbolo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css?v=6">
+</head>
+<body>
+<main class="pub">
+  <div class="pub-head"><img data-egg src="/static/logo.svg" alt="{{ clinic }}" width="150" height="106"></div>
+  {% block body %}{% endblock %}
+  <footer class="credits">Idealizado, pensado e planejado por <strong>Arthur</strong> 👑 · Desenvolvido com <span class="spark" aria-hidden="true">&#9883;&#65038;</span> · {{ clinic }}</footer>
+</main>
+<script src="/static/egg.js?v=1" defer></script>
+</body>
+</html>

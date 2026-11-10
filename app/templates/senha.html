@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Minha senha{% endblock %}
+{% block body %}
+<h1>Minha senha</h1>
+<form method="post" class="card" style="max-width:420px">
+  <div class="field"><label for="c">Senha atual</label><input id="c" type="password" name="current" required autocomplete="current-password"></div>
+  <div class="field"><label for="n">Nova senha (mínimo 8 caracteres)</label><input id="n" type="password" name="new" minlength="8" required autocomplete="new-password"></div>
+  <button class="btn">Alterar senha</button>
+</form>
+{% endblock %}

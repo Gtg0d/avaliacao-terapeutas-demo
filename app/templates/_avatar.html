@@ -1,0 +1,1 @@
+{% macro avatar(t, size="s") %}{% if t.has_photo %}<img class="avatar {{ size }}" src="/foto/{{ t.id }}?v={{ t.photo_version }}" alt="Foto de {{ t.name }}">{% else %}<span class="avatar {{ size }}" aria-hidden="true">{{ t.name|initials }}</span>{% endif %}{% endmacro %}

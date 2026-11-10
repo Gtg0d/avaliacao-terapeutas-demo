@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Perguntas{% endblock %}
+{% block body %}
+<h1>Perguntas do formulário</h1>
+<p class="muted">Cada pergunta é feita para cada terapeuta. “Conta no índice” define se a pergunta entra no percentual geral do terapeuta (as que não contam aparecem só na coluna própria). Podem ser de Sim/Não, de nota de 1 a 5 ou de texto. Além delas, sempre há um campo de observação sobre o terapeuta e, no final, um sobre a clínica. Com muitos terapeutas por criança, o ideal é manter poucas perguntas.</p>
+<form method="post" class="card row">
+  <div class="grow"><label for="t">Nova pergunta</label><input id="t" type="text" name="text" maxlength="300" required></div>
+  <div><label for="k">Tipo</label><select id="k" name="kind"><option value="simnao">Sim / Não</option><option value="nota">Nota de 1 a 5</option><option value="texto">Texto livre</option></select></div>
+  <label class="check" style="min-height:44px"><input type="checkbox" name="allow_ns" value="1"> Oferecer “Não sei dizer”</label>
+  <label class="check" style="min-height:44px"><input type="checkbox" name="in_index" value="1" checked> Conta no índice</label>
+  <button class="btn">Adicionar</button>
+</form>
+<div class="card">
+  {% for q in qs %}
+  <form method="post" action="/painel/perguntas/{{ q.id }}" class="row" style="margin-bottom:.8rem">
+    <div style="width:80px"><label for="p{{ q.id }}">Ordem</label><input id="p{{ q.id }}" type="number" name="position" value="{{ q.position }}"></div>
+    <div class="grow"><label for="q{{ q.id }}">{{ {"simnao": "Sim / Não", "nota": "Nota de 1 a 5"}.get(q.kind, "Texto livre") }}</label><input id="q{{ q.id }}" type="text" name="text" value="{{ q.text }}" maxlength="300" required></div>
+    {% if q.kind == "simnao" %}<label class="check" style="min-height:44px"><input type="checkbox" name="allow_ns" value="1" {{ "checked" if q.allow_ns }}> “Não sei dizer”</label>{% endif %}
+    {% if q.kind != "texto" %}<label class="check" style="min-height:44px"><input type="checkbox" name="in_index" value="1" {{ "checked" if q.in_index }}> Conta no índice</label>{% endif %}
+    <label class="check" style="min-height:44px"><input type="checkbox" name="active" value="1" {{ "checked" if q.active }}> Ativa</label>
+    <button class="btn sec sm" style="min-height:44px">Salvar</button>
+    <button class="btn danger sm" style="min-height:44px" name="action" value="remove" formnovalidate data-confirm="Remover esta pergunta?">Remover</button>
+  </form>
+  {% else %}<p class="muted">Nenhuma pergunta.</p>{% endfor %}
+</div>
+{% endblock %}

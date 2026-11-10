@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Acompanhamento{% endblock %}
+{% block body %}
+<div class="head"><h1>Acompanhamento{% if rnd %}: {{ rnd.name }}{% endif %}</h1></div>
+{% if not rnd %}<p class="flash erro">Nenhuma rodada aberta. Os links abaixo já podem ser copiados, mas só passam a aceitar respostas quando a direção abrir uma rodada.</p>{% endif %}
+<div class="tabs">
+  <a href="?" class="{{ 'on' if not f }}">Todos</a>
+  <a href="?f=pendentes" class="{{ 'on' if f == 'pendentes' }}">Pendentes</a>
+  {% for k in ("nao_abriu", "abriu", "andamento", "concluido") %}
+  <a href="?f={{ k }}" class="{{ 'on' if f == k }}">{{ labels[k] }} ({{ counts[k] }})</a>
+  {% endfor %}
+</div>
+<div class="card tablewrap">
+<table>
+  <thead><tr><th>Paciente</th><th>Responsável</th><th>Situação</th><th>Respondidas</th><th>Enviar link</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a href="/painel/pacientes/{{ r.p.id }}">{{ r.p.name }}</a></td>
+    <td>{{ r.g.name }}<div class="small muted">{{ r.g.phone or "sem telefone" }}</div></td>
+    <td><span class="badge {{ {'concluido':'ok','andamento':'warn','abriu':'warn','sem_terapeutas':'bad'}.get(r.status, '') }}">{{ r.label }}</span></td>
+    <td class="num"><span class="meter"><i style="width:{{ (r.done / r.total * 100)|round|int if r.total else 0 }}%"></i></span>{{ r.done }}/{{ r.total }}</td>
+    <td><div class="actions">
+      {% if r.wa %}<a class="btn sm" href="{{ r.wa }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
+      <button type="button" class="btn sec sm" data-copy="{{ r.msg }}">Copiar mensagem</button>
+      <button type="button" class="btn ghost sm" data-copy="{{ r.link }}">Copiar link</button>
+    </div></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">Ninguém nesta situação.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

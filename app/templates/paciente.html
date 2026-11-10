@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_avatar.html" import avatar %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block body %}
+<p class="small"><a href="/painel/pacientes">← Pacientes</a></p>
+<div class="head"><h1>{{ p.name }} {% if not p.active %}<span class="badge">Inativo</span>{% endif %}</h1></div>
+<div class="grid2">
+<section class="card">
+  <h2>Dados</h2>
+  <form method="post">
+    <div class="field"><label for="name">Nome da criança</label><input id="name" type="text" name="name" value="{{ p.name }}" required></div>
+    <div class="field"><label for="notes">Pendência / observação <span class="muted" style="font-weight:400">(aparece no Início até ser apagada)</span></label><input id="notes" type="text" name="notes" value="{{ p.notes }}" maxlength="500"></div>
+    <div class="field"><label class="check"><input type="checkbox" name="active" value="1" {{ "checked" if p.active }}> Paciente ativo (recebe a avaliação)</label></div>
+    <div class="actions">
+      <button class="btn">Salvar</button>
+      <button class="btn danger" name="action" value="remove" formnovalidate data-confirm="Remover {{ p.name }}? Se já houver avaliações, o paciente só é desativado.">Remover paciente</button>
+    </div>
+  </form>
+</section>
+<section class="card">
+  <h2>Responsáveis e links</h2>
+  {% for it in guardians %}
+  {% set g = it.g %}
+  <form method="post" action="/painel/responsaveis/{{ g.id }}" style="border-bottom:1px solid var(--line);padding-bottom:.8rem;margin-bottom:.8rem">
+    <div class="row">
+      <div class="grow"><label for="gn{{ g.id }}">Nome</label><input id="gn{{ g.id }}" type="text" name="name" value="{{ g.name }}" required></div>
+      <div class="grow"><label for="gp{{ g.id }}">WhatsApp</label><input id="gp{{ g.id }}" type="tel" name="phone" value="{{ g.phone }}" placeholder="(21) 99999-0000"></div>
+    </div>
+    {% if not g.active %}<p class="small"><span class="badge">Desativado</span> Salvar reativa.</p>{% endif %}
+    <p class="small" style="margin:.5rem 0"><code class="link">{{ it.link }}</code></p>
+    <div class="actions">
+      <button class="btn sm">Salvar</button>
+      {% if it.wa %}<a class="btn sec sm" href="{{ it.wa }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
+      <button type="button" class="btn sec sm" data-copy="{{ it.msg }}">Copiar mensagem</button>
+      <button type="button" class="btn ghost sm" data-copy="{{ it.link }}">Copiar link</button>
+      <button class="btn ghost sm" name="action" value="newlink" formnovalidate data-confirm="Gerar um novo link? O link atual para de funcionar.">Novo link</button>
+      <button class="btn danger sm" name="action" value="remove" formnovalidate data-confirm="Remover este responsável?">Remover</button>
+    </div>
+  </form>
+  {% else %}<p><span class="badge warn">Falta cadastrar um responsável</span></p>{% endfor %}
+  <form method="post" action="/painel/pacientes/{{ p.id }}/responsavel" class="row">
+    <div class="grow"><label for="ng">Novo responsável</label><input id="ng" type="text" name="name" placeholder="Nome" required></div>
+    <div class="grow"><label for="np">WhatsApp</label><input id="np" type="tel" name="phone" placeholder="(21) 99999-0000"></div>
+    <button class="btn sec">Adicionar</button>
+  </form>
+</section>
+</div>
+<section class="card">
+  <h2>Terapeutas que atendem <span class="badge">{{ assigns|length }}</span></h2>
+  <p class="muted small">É esta lista que o responsável vê no link. Ao mudar o cronograma, remova quem saiu e adicione quem entrou: o link continua o mesmo.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Terapia</th><th>Terapeuta</th><th>Setor (ranking)</th><th></th></tr></thead>
+    <tbody>
+    {% for a in assigns %}
+    <tr class="{{ '' if a.therapist.active else 'off' }}">
+      <td>{{ a.therapy }}{% if a.for_guardian %} <span class="badge">Atende o responsável</span>{% endif %}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:.6rem">{{ avatar(a.therapist) }} <a href="/painel/terapeutas/{{ a.therapist.id }}">{{ a.therapist.name }}</a>{% if not a.therapist.active %} <span class="badge">Inativo</span>{% endif %}</span></td>
+      <td>{{ a.sector }}{% if not a.sector %}<span class="badge warn">Falta setor</span>{% endif %}</td>
+      <td><form method="post" action="/painel/vinculos/{{ a.id }}/remover"><button class="btn danger sm" data-confirm="Tirar {{ a.therapist.name }} do cronograma de {{ p.name }}?">Remover</button></form></td>
+    </tr>
+    {% else %}<tr><td colspan="4" class="muted">Nenhum terapeuta vinculado.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  <form method="post" action="/painel/pacientes/{{ p.id }}/vinculo" class="row" style="margin-top:1rem">
+    <div class="grow"><label for="th">Terapia</label><input id="th" type="text" name="therapy" list="therapies" placeholder="Ex.: Terapia Ocupacional" required>
+      <datalist id="therapies">{% for t in therapies %}<option value="{{ t }}">{% endfor %}</datalist></div>
+    <div class="grow"><label for="ti">Terapeuta</label><select id="ti" name="therapist_id"><option value="">Escolha…</option>{% for t in therapists %}<option value="{{ t.id }}">{{ t.name }}{% if t.sector %} ({{ t.sector }}){% endif %}</option>{% endfor %}</select></div>
+    <div class="grow"><label for="tn">ou cadastrar novo</label><input id="tn" type="text" name="new_name" placeholder="Nome do terapeuta"></div>
+    <div class="grow"><label for="sc">Setor <span class="muted" style="font-weight:400">(se vazio, usa o do terapeuta)</span></label><input id="sc" type="text" name="sector" list="sectors">
+      <datalist id="sectors">{% for s in sectors %}<option value="{{ s }}">{% endfor %}</datalist></div>
+    <label class="check" style="min-height:44px"><input type="checkbox" name="for_guardian" value="1"> Atende o responsável</label>
+    <button class="btn sec">Adicionar</button>
+  </form>
+</section>
+{% endblock %}
