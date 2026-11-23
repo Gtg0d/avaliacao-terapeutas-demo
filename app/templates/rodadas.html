@@ -17,10 +17,11 @@
     <td class="num">{{ r.created_at|dt }}</td><td class="num">{{ r.closed_at|dt }}</td>
     <td class="r num">{{ n.get(r.id, 0) }}</td>
     <td><div class="actions">
-      <a class="btn ghost sm" href="/painel/resultados?rodada={{ r.id }}">Resultados</a>
+      {% if user.role in ("admin", "direcao") %}<a class="btn ghost sm" href="/painel/resultados?rodada={{ r.id }}">Resultados</a>{% endif %}
       <form method="post" action="/painel/rodadas/{{ r.id }}" class="inline">
       {% if r.status == "open" %}<button class="btn sec sm" name="action" value="close" data-confirm="Encerrar a rodada? Os responsáveis não poderão mais responder.">Encerrar</button>
-      {% else %}<button class="btn sec sm" name="action" value="open">Reabrir</button>{% endif %}
+      {% else %}<button class="btn sec sm" name="action" value="open">Reabrir</button>
+      {% if user.role == "admin" %}<button class="btn danger sm" name="action" value="delete" data-confirm="Excluir a rodada “{{ r.name }}” e TODAS as respostas dela? Isso não pode ser desfeito.">Excluir</button>{% endif %}{% endif %}
       </form>
     </div></td>
   </tr>

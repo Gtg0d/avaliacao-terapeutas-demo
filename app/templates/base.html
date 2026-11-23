@@ -17,9 +17,9 @@
   {{ nav("/painel/acompanhamento", "Acompanhamento") }}
   {{ nav("/painel/pacientes", "Pacientes") }}
   {{ nav("/painel/terapeutas", "Terapeutas") }}
+  {{ nav("/painel/rodadas", "Rodadas") }}
   {% if user.role in ("admin", "direcao") %}
   {{ nav("/painel/resultados", "Resultados") }}
-  {{ nav("/painel/rodadas", "Rodadas") }}
   {{ nav("/painel/perguntas", "Perguntas") }}
   {% endif %}
   {% if user.role == "admin" %}{{ nav("/painel/usuarios", "Usuários") }}{% endif %}

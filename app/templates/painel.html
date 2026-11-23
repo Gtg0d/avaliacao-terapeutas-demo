@@ -3,11 +3,11 @@
 {% block body %}
 <div class="head">
   <h1>{% if rnd %}Rodada aberta: {{ rnd.name }}{% else %}Nenhuma rodada aberta{% endif %}</h1>
-  {% if user.role in ("admin", "direcao") %}<a class="btn sec" href="/painel/rodadas">Gerenciar rodadas</a>{% endif %}
+  <a class="btn sec" href="/painel/rodadas">Gerenciar rodadas</a>
 </div>
 {% if not rnd %}
 <p class="card">Enquanto não houver uma rodada aberta, os links dos responsáveis mostram o aviso
-“nenhuma avaliação aberta”. {% if user.role in ("admin", "direcao") %}Abra uma em <a href="/painel/rodadas">Rodadas</a>.{% else %}Quem abre a rodada é a direção.{% endif %}</p>
+“nenhuma avaliação aberta”. Abra uma em <a href="/painel/rodadas">Rodadas</a>.</p>
 {% else %}
 {% set concl = counts["concluido"] %}
 <div class="stats">

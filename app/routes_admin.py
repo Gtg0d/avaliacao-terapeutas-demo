@@ -126,7 +126,7 @@ def tracking_page(request: Request, f: str = "", db: Session = Depends(get_db),
 
 # ======================= rodadas =======================
 @router.get("/painel/rodadas")
-def rounds_page(request: Request, db: Session = Depends(get_db), user: User = Depends(need(*GESTAO))):
+def rounds_page(request: Request, db: Session = Depends(get_db), user: User = Depends(need(*TODOS))):
     rounds = db.query(Round).order_by(Round.id.desc()).all()
     n = dict(db.query(Submission.round_id, func.count(Submission.id))
              .filter(Submission.completed_at.isnot(None)).group_by(Submission.round_id).all())
@@ -135,7 +135,7 @@ def rounds_page(request: Request, db: Session = Depends(get_db), user: User = De
 
 @router.post("/painel/rodadas")
 async def round_create(request: Request, db: Session = Depends(get_db),
-                       user: User = Depends(need(*GESTAO))):
+                       user: User = Depends(need(*TODOS))):
     form = await request.form()
     name = clean(form.get("name"), 120)
     if not name:
@@ -151,12 +151,27 @@ async def round_create(request: Request, db: Session = Depends(get_db),
 
 @router.post("/painel/rodadas/{rid}")
 async def round_update(rid: int, request: Request, db: Session = Depends(get_db),
-                       user: User = Depends(need(*GESTAO))):
+                       user: User = Depends(need(*TODOS))):
     form = await request.form()
     r = db.get(Round, rid)
     if not r:
         raise HTTPException(404)
     action = form.get("action")
+    if action == "delete":
+        # Exclusão definitiva: só o administrador, e só de rodada encerrada.
+        if user.role != "admin":
+            raise HTTPException(403, "Só o administrador pode excluir rodadas.")
+        if r.status == "open":
+            flash(request, "Encerre a rodada antes de excluí-la.", "erro")
+            return go("/painel/rodadas")
+        subs = db.query(Submission).filter(Submission.round_id == rid).all()
+        for s in subs:
+            db.delete(s)  # apaga junto as avaliações e respostas (cascade)
+        name = r.name
+        db.delete(r)
+        db.commit()
+        flash(request, f"Rodada “{name}” excluída, com {len(subs)} participação(ões) de responsáveis.")
+        return go("/painel/rodadas")
     if action == "close":
         r.status, r.closed_at = "closed", utcnow()
         flash(request, "Rodada encerrada.")

@@ -38,9 +38,9 @@ O formulário não sabia quem estava respondendo, então o trabalho de filtrar f
 
 | Perfil | O que faz |
 |---|---|
-| **Recepção** | Cadastra pacientes, responsáveis e terapeutas; envia os links; vê quem ainda não respondeu. Não vê notas. |
-| **Direção** | Abre e encerra rodadas, edita as perguntas, vê resultados e exporta para Excel. |
-| **Administrador** | Tudo, mais a gestão de usuários. |
+| **Recepção** | Cadastra pacientes, responsáveis e terapeutas; abre e encerra rodadas; envia os links; vê quem ainda não respondeu. Não vê notas. |
+| **Direção** | Tudo da recepção, mais as perguntas, os resultados e a exportação para Excel. |
+| **Administrador** | Tudo, mais a gestão de usuários e a exclusão de rodadas encerradas (ex.: rodadas de teste). |
 
 ![Acompanhamento da rodada](docs/painel-acompanhamento.png)
 
