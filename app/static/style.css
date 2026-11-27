@@ -164,3 +164,13 @@ code.link { font-size: .8rem; word-break: break-all; color: var(--muted); }
 @keyframes eggfade { from { opacity: 0; } }
 @keyframes eggpop { from { transform: scale(.85); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { #egg, .egg-card { animation: none; } }
+
+/* programa: intensivo x particular */
+.badge.prog-intensivo { background: var(--brand-soft); color: var(--brand); }
+.badge.prog-particular { background: #e3ecfa; color: #1e4f9c; }
+h1 .badge, h2 .badge { vertical-align: middle; font-size: .78rem; }
+fieldset.progpick { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .2rem 1rem; min-height: 44px; }
+fieldset.progpick legend { float: left; font-weight: 600; font-size: .9rem; margin-right: .4rem; padding: 0; }
+fieldset.progpick .check { margin: 0; }
+details.help summary { cursor: pointer; font-weight: 600; }
+details.help p { font-size: .9rem; color: var(--muted); margin: .6rem 0 0; }

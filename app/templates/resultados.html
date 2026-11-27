@@ -1,28 +1,44 @@
 {% extends "base.html" %}
+{% from "_prog.html" import prog_badge with context %}
 {% block title %}Resultados{% endblock %}
+{% macro meter(v) %}{% if v is not none %}<span class="meter"><i style="width:{{ v|round|int }}%"></i></span>{% endif %}{% endmacro %}
+{% macro cover(row) %}{{ row.n }}{% if row.expected %} de {{ row.expected }}{% endif %}
+  {% if row.coverage is not none %}<span class="badge {{ 'warn' if row.low else 'ok' }}">{{ (row.coverage * 100)|round|int }}%</span>
+  {% elif row.low %}<span class="badge warn">poucas</span>{% endif %}{% endmacro %}
 {% block body %}
-{% set sel = "todas" if all_rounds else (rnd.id if rnd else "") %}
+{% set sel = ("todas-" ~ prog) if all_rounds else (rnd.id if rnd else "") %}
 <div class="head">
-  <h1>Resultados</h1>
+  <h1>Resultados {{ prog_badge(prog) }}</h1>
   <form method="get" class="row">
     <div><label for="r">Rodada</label><select id="r" name="rodada" onchange="this.form.submit()">
-      {% for r in rounds %}<option value="{{ r.id }}" {{ "selected" if not all_rounds and rnd and r.id == rnd.id }}>{{ r.name }}</option>{% endfor %}
-      <option value="todas" {{ "selected" if all_rounds }}>Todas as rodadas</option></select></div>
+      {% for k, v in PROGRAMS.items() %}
+      <optgroup label="{{ v }}">
+        {% for r in rounds if r.program == k %}<option value="{{ r.id }}" {{ "selected" if not all_rounds and rnd and r.id == rnd.id }}>{{ r.name }}</option>{% endfor %}
+        <option value="todas-{{ k }}" {{ "selected" if all_rounds and prog == k }}>Todas as rodadas do {{ v }}</option>
+      </optgroup>
+      {% endfor %}</select></div>
     <a class="btn sec" href="/painel/resultados/exportar?rodada={{ sel }}">Baixar Excel</a>
   </form>
 </div>
 {% if not data.therapists %}
 <p class="card muted">Ainda não há avaliações {{ "registradas" if all_rounds else "nesta rodada" }}.</p>
 {% else %}
-<p class="muted small"><strong>Índice</strong>: percentual de respostas positivas (Sim) que o terapeuta recebeu, somando as perguntas marcadas para contar. “Não sei dizer” não entra na conta; perguntas de nota 1 a 5 entram convertidas. Com menos de {{ min_n }} avaliações o resultado é marcado como “poucas”: uma única resposta muda muito o número.</p>
+<details class="card help">
+  <summary>Como ler esta tabela</summary>
+  <p><strong>Índice</strong>: percentual de respostas positivas (Sim) que o terapeuta recebeu, somando as perguntas marcadas para contar. “Não sei dizer” não entra na conta; perguntas de nota 1 a 5 entram convertidas.</p>
+  <p><strong>Crianças</strong>: quantas crianças do {{ PROGRAMS[prog] }} o terapeuta atende hoje. <strong>Avaliações</strong>: quantas recebeu “de” quantas deveria receber (uma por terapia, por responsável cadastrado){% if all_rounds %}, somando as {{ data.n_rounds }} rodadas{% endif %}. A porcentagem ao lado é a cobertura; abaixo de {{ (min_cov * 100)|int }}% fica em amarelo.</p>
+  <p><strong>Índice ajustado</strong>: corrige o índice quando faltaram respostas, puxando-o para a média geral ({{ data.overall|pct }}) na proporção do que faltou. Com 12 de 12 respostas é igual ao índice; com 3 de 12, vale 25% o índice do terapeuta e 75% a média geral. Assim, quem foi pouco avaliado não fica no topo nem no fim do ranking por causa de duas ou três respostas. O ranking é ordenado por ele.</p>
+  <p>As avaliações esperadas são calculadas pelo cadastro atual: se o cronograma de uma criança mudou depois da rodada, o número pode não bater exatamente.</p>
+</details>
 <section class="card">
   <h2>Setores</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>#</th><th>Setor</th><th class="r">Índice</th><th class="r">Avaliações</th><th class="r">Terapeutas</th></tr></thead>
+    <thead><tr><th>#</th><th>Setor</th><th class="r">Índice ajustado</th><th class="r">Índice</th><th class="r">Avaliações</th><th class="r">Terapeutas</th></tr></thead>
     <tbody>{% for s in data.sectors %}
     <tr><td class="num">{{ loop.index }}</td><td>{{ s.name }}</td>
-      <td class="r num"><span class="meter"><i style="width:{{ s.avg|round|int }}%"></i></span><strong>{{ s.avg|pct }}</strong></td>
-      <td class="r num">{{ s.n }}{% if s.low %} <span class="badge warn">poucas</span>{% endif %}</td>
+      <td class="r num">{{ meter(s.adj) }}<strong>{{ s.adj|pct }}</strong></td>
+      <td class="r num">{{ s.avg|pct }}</td>
+      <td class="r num">{{ cover(s) }}</td>
       <td class="r num">{{ s.therapists }}</td></tr>
     {% endfor %}</tbody>
   </table></div>
@@ -30,14 +46,16 @@
 <section class="card">
   <h2>Terapeutas</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>#</th><th>Terapeuta</th><th>Setor</th><th class="r">Índice</th><th class="r">Avaliações</th>
+    <thead><tr><th>#</th><th>Terapeuta</th><th>Setor</th><th class="r">Crianças</th><th class="r">Avaliações</th><th class="r">Índice ajustado</th><th class="r">Índice</th>
       {% for q in questions %}<th class="r" title="{{ q.text }}">P{{ loop.index }}</th>{% endfor %}</tr></thead>
     <tbody>{% for r in data.therapists %}
-    <tr><td class="num">{{ loop.index }}</td>
+    <tr><td class="num">{{ loop.index if r.adj is not none else "–" }}</td>
       <td><a href="/painel/resultados/terapeuta/{{ r.t.id }}">{{ r.t.name }}</a></td>
       <td>{{ r.t.sector or "Sem setor" }}</td>
-      <td class="r num"><span class="meter"><i style="width:{{ r.avg|round|int }}%"></i></span><strong>{{ r.avg|pct }}</strong></td>
-      <td class="r num">{{ r.n }}{% if r.low %} <span class="badge warn">poucas</span>{% endif %}</td>
+      <td class="r num">{{ r.children or "–" }}</td>
+      <td class="r num">{{ cover(r) }}</td>
+      <td class="r num">{{ meter(r.adj) }}<strong>{{ r.adj|pct }}</strong></td>
+      <td class="r num">{{ r.avg|pct }}</td>
       {% for q in questions %}<td class="r num">{{ r.q.get(q.id)|qfmt(q.kind) }}</td>{% endfor %}</tr>
     {% endfor %}</tbody>
   </table></div>
@@ -50,5 +68,5 @@
   {% for s in clinic_notes %}<blockquote class="comment">{{ s.clinic_comment }}<div class="small muted">{{ s.guardian.name }} (resp. de {{ s.guardian.patient.name }}) · {{ s.round.name }}</div></blockquote>{% endfor %}
 </section>
 {% endif %}
-<p class="small muted">Quem ainda não respondeu está em <a href="/painel/acompanhamento?f=pendentes">Acompanhamento</a> e na aba “Pendentes” do Excel.</p>
+<p class="small muted">Quem ainda não respondeu está em <a href="/painel/acompanhamento?p={{ prog }}&f=pendentes">Acompanhamento</a> e na aba “Pendentes” do Excel.</p>
 {% endblock %}

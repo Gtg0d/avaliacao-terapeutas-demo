@@ -47,6 +47,8 @@ PACIENTES = [
     ("Elisa Borges Farias", [("Márcia Borges", "21990000012")], 8),
 ]
 
+PARTICULARES = 4  # os últimos da lista entram como pacientes particulares
+
 TERAPIA_DO_SETOR = {"Fisioterapia Aquática": "Terapia Aquática"}
 
 COMENTARIOS_BONS = [
@@ -93,8 +95,9 @@ def seed(db: Session) -> None:
     db.flush()
 
     guardians = []
-    for pname, resp, n in PACIENTES:
-        p = Patient(name=pname)
+    for i, (pname, resp, n) in enumerate(PACIENTES):
+        program = "particular" if i >= len(PACIENTES) - PARTICULARES else "intensivo"
+        p = Patient(name=pname, program=program)
         db.add(p)
         db.flush()
         for gname, phone in resp:
@@ -115,14 +118,17 @@ def seed(db: Session) -> None:
     questions = db.query(Question).filter(Question.active.is_(True)).all()
     rounds = [Round(name="Outubro/2026 – 1ª quinzena", status="closed", closed_at=utcnow()),
               Round(name="Outubro/2026 – 2ª quinzena", status="closed", closed_at=utcnow()),
-              Round(name="Novembro/2026 – 1ª quinzena", status="open")]
+              Round(name="Novembro/2026 – 1ª quinzena", status="open"),
+              Round(name="Outubro/2026", program="particular", status="closed", closed_at=utcnow()),
+              Round(name="Novembro/2026", program="particular", status="open")]
     db.add_all(rounds)
     db.flush()
 
-    for ri, r in enumerate(rounds):
-        for gi, g in enumerate(guardians):
+    for r in rounds:
+        same = [x for x in rounds if x.program == r.program]
+        ri, last = same.index(r), r is same[-1]
+        for gi, g in enumerate([x for x in guardians if x.patient.program == r.program]):
             assigns = db.query(Assignment).filter(Assignment.patient_id == g.patient_id).all()
-            last = ri == len(rounds) - 1
             if last and gi % 5 == 3:
                 continue                                   # ainda não abriu o link
             sub = Submission(round_id=r.id, guardian_id=g.id)

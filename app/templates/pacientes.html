@@ -1,24 +1,31 @@
 {% extends "base.html" %}
+{% from "_prog.html" import prog_badge, prog_radio with context %}
 {% block title %}Pacientes{% endblock %}
 {% block body %}
 <div class="head"><h1>Pacientes</h1><a class="btn sec" href="/painel/importar">Importar planilha</a></div>
 <form method="post" class="card row">
   <div class="grow"><label for="n">Adicionar criança</label><input id="n" type="text" name="name" placeholder="Nome completo" required></div>
+  {{ prog_radio(selected=prog) }}
   <button class="btn">Adicionar</button>
 </form>
+<div class="tabs">
+  <a href="?" class="{{ 'on' if not prog }}">Todos ({{ counts.values()|sum }})</a>
+  {% for k, v in PROGRAMS.items() %}<a href="?p={{ k }}" class="{{ 'on' if prog == k }}">{{ v }} ({{ counts.get(k, 0) }})</a>{% endfor %}
+</div>
 <div class="card tablewrap"><table>
-  <thead><tr><th>Paciente</th><th>Responsáveis</th><th class="r">Terapeutas</th><th>Situação</th><th></th></tr></thead>
+  <thead><tr><th>Paciente</th><th>Programa</th><th>Responsáveis</th><th class="r">Terapeutas</th><th>Situação</th><th></th></tr></thead>
   <tbody>
   {% for p in patients %}
   {% set gs = p.guardians|selectattr("active")|list %}
   <tr class="{{ '' if p.active else 'off' }}">
     <td><a href="/painel/pacientes/{{ p.id }}">{{ p.name }}</a></td>
+    <td>{{ prog_badge(p.program) }}</td>
     <td>{% for g in gs %}{{ g.name }}{{ ", " if not loop.last }}{% else %}<span class="badge warn">Falta responsável</span>{% endfor %}</td>
     <td class="r num">{% if p.assignments %}{{ p.assignments|length }}{% else %}<span class="badge warn">Nenhum</span>{% endif %}</td>
     <td>{% if p.active %}<span class="badge ok">Ativo</span>{% else %}<span class="badge">Inativo</span>{% endif %}</td>
     <td><a class="btn ghost sm" href="/painel/pacientes/{{ p.id }}">Editar</a></td>
   </tr>
-  {% else %}<tr><td colspan="5" class="muted">Nenhum paciente cadastrado.</td></tr>{% endfor %}
+  {% else %}<tr><td colspan="6" class="muted">Nenhum paciente cadastrado.</td></tr>{% endfor %}
   </tbody>
 </table></div>
 {% endblock %}

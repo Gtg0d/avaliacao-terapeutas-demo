@@ -1,13 +1,17 @@
 {% extends "base.html" %}
+{% from "_prog.html" import prog_badge with context %}
 {% block title %}Acompanhamento{% endblock %}
 {% block body %}
-<div class="head"><h1>Acompanhamento{% if rnd %}: {{ rnd.name }}{% endif %}</h1></div>
-{% if not rnd %}<p class="flash erro">Nenhuma rodada aberta. Os links abaixo já podem ser copiados, mas só passam a aceitar respostas quando a direção abrir uma rodada.</p>{% endif %}
+<div class="head"><h1>Acompanhamento{% if rnd %}: {{ rnd.name }}{% endif %} {{ prog_badge(prog) }}</h1></div>
+<div class="tabs prog-tabs">
+  {% for k, v in PROGRAMS.items() %}<a href="?p={{ k }}" class="{{ 'on' if prog == k }}">{{ v }}</a>{% endfor %}
+</div>
+{% if not rnd %}<p class="flash erro">Nenhuma rodada do {{ PROGRAMS[prog] }} aberta. Os links abaixo já podem ser copiados, mas só passam a aceitar respostas quando uma rodada do {{ PROGRAMS[prog] }} for aberta em Rodadas.</p>{% endif %}
 <div class="tabs">
-  <a href="?" class="{{ 'on' if not f }}">Todos</a>
-  <a href="?f=pendentes" class="{{ 'on' if f == 'pendentes' }}">Pendentes</a>
+  <a href="?p={{ prog }}" class="{{ 'on' if not f }}">Todos</a>
+  <a href="?p={{ prog }}&f=pendentes" class="{{ 'on' if f == 'pendentes' }}">Pendentes</a>
   {% for k in ("nao_abriu", "abriu", "andamento", "concluido") %}
-  <a href="?f={{ k }}" class="{{ 'on' if f == k }}">{{ labels[k] }} ({{ counts[k] }})</a>
+  <a href="?p={{ prog }}&f={{ k }}" class="{{ 'on' if f == k }}">{{ labels[k] }} ({{ counts[k] }})</a>
   {% endfor %}
 </div>
 <div class="card tablewrap">

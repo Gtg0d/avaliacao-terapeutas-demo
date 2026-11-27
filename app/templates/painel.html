@@ -1,30 +1,36 @@
 {% extends "base.html" %}
+{% from "_prog.html" import prog_badge with context %}
 {% block title %}Início{% endblock %}
 {% block body %}
 <div class="head">
-  <h1>{% if rnd %}Rodada aberta: {{ rnd.name }}{% else %}Nenhuma rodada aberta{% endif %}</h1>
+  <h1>Rodadas em andamento</h1>
   <a class="btn sec" href="/painel/rodadas">Gerenciar rodadas</a>
 </div>
-{% if not rnd %}
-<p class="card">Enquanto não houver uma rodada aberta, os links dos responsáveis mostram o aviso
-“nenhuma avaliação aberta”. Abra uma em <a href="/painel/rodadas">Rodadas</a>.</p>
+{% for b in blocks %}
+<section class="card">
+  <h2>{{ prog_badge(b.program) }} {% if b.rnd %}{{ b.rnd.name }}{% else %}Nenhuma rodada aberta{% endif %}</h2>
+  {% if not b.rnd %}
+  <p class="muted" style="margin:0">Enquanto não houver uma rodada aberta do {{ b.label }}, os links desses responsáveis mostram o aviso
+  “nenhuma avaliação aberta”. Abra uma em <a href="/painel/rodadas">Rodadas</a>.</p>
+  {% else %}
+  {% set c = b.counts %}{% set concl = c["concluido"] %}{% set base = "/painel/acompanhamento?p=" ~ b.program ~ "&f=" %}
+  <div class="stats">
+    <a class="stat" href="{{ base }}concluido"><b>{{ concl }}</b><span>concluíram</span></a>
+    <a class="stat" href="{{ base }}andamento"><b>{{ c["andamento"] }}</b><span>pararam no meio</span></a>
+    <a class="stat" href="{{ base }}abriu"><b>{{ c["abriu"] }}</b><span>abriram e não responderam</span></a>
+    <a class="stat" href="{{ base }}nao_abriu"><b>{{ c["nao_abriu"] }}</b><span>não abriram o link</span></a>
+  </div>
+  <div class="progress" style="margin:0"><div class="bar"><i style="width:{{ (concl / b.total * 100)|round|int if b.total else 0 }}%"></i></div>
+  <span class="num">{{ concl }} de {{ b.total }} responsáveis</span></div>
+  {% endif %}
+</section>
 {% else %}
-{% set concl = counts["concluido"] %}
-<div class="stats">
-  <a class="stat" href="/painel/acompanhamento?f=concluido"><b>{{ concl }}</b><span>concluíram</span></a>
-  <a class="stat" href="/painel/acompanhamento?f=andamento"><b>{{ counts["andamento"] }}</b><span>pararam no meio</span></a>
-  <a class="stat" href="/painel/acompanhamento?f=abriu"><b>{{ counts["abriu"] }}</b><span>abriram e não responderam</span></a>
-  <a class="stat" href="/painel/acompanhamento?f=nao_abriu"><b>{{ counts["nao_abriu"] }}</b><span>não abriram o link</span></a>
-</div>
-<div class="card">
-  <div class="progress" style="margin:0"><div class="bar"><i style="width:{{ (concl / total * 100)|round|int if total else 0 }}%"></i></div>
-  <span class="num">{{ concl }} de {{ total }} responsáveis</span></div>
-</div>
-{% endif %}
+<p class="card">Nenhum paciente cadastrado ainda. Comece em <a href="/painel/pacientes">Pacientes</a>.</p>
+{% endfor %}
 <div class="grid2">
   <section class="card">
     <h2>Cadastro</h2>
-    <p><strong class="num">{{ n_patients }}</strong> pacientes ativos · <strong class="num">{{ n_therapists }}</strong> terapeutas ativos</p>
+    <p>{% for b in blocks %}<strong class="num">{{ b.n_patients }}</strong> do {{ b.label }} · {% endfor %}<strong class="num">{{ n_therapists }}</strong> terapeutas ativos</p>
     <div class="actions">
       <a class="btn sec sm" href="/painel/pacientes">Pacientes</a>
       <a class="btn sec sm" href="/painel/terapeutas">Terapeutas</a>

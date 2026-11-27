@@ -11,13 +11,13 @@ from PIL import Image, ImageOps
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from .core import (ADMIN, GESTAO, ROLES, TODOS, check_password, flash,
-                   guardian_link, hash_password, invite_text, need, new_token,
+from .core import (ADMIN, GESTAO, PROGRAMS, ROLES, TODOS, check_password, flash,
+                   guardian_link, hash_password, invite_text, need, new_token, program_of,
                    render, wa_link)
 from .db import get_db
 from .models import (Answer, Assignment, Evaluation, Guardian, Patient,
                      Question, Round, Submission, Therapist, User, utcnow)
-from .stats import (MIN_RESPOSTAS, STATUS_LABEL, clinic_comments, open_round,
+from .stats import (MIN_COBERTURA, MIN_RESPOSTAS, STATUS_LABEL, clinic_comments, open_round,
                     pendencias, scored_questions, scores, therapist_history,
                     tracking)
 
@@ -91,23 +91,32 @@ async def password_save(request: Request, db: Session = Depends(get_db), user: U
 # ======================= início =======================
 @router.get("/painel")
 def dashboard(request: Request, db: Session = Depends(get_db), user: User = Depends(need())):
-    rnd = open_round(db)
-    rows = tracking(db, rnd)
-    counts = defaultdict(int)
-    for r in rows:
-        counts[r["status"]] += 1
-    return render(request, "painel.html", rnd=rnd, counts=counts, total=len(rows),
-                  pend=pendencias(db, rnd),
+    blocks = []
+    for prog, label in PROGRAMS.items():
+        n_pat = db.query(Patient).filter(Patient.active.is_(True), Patient.program == prog).count()
+        rnd = open_round(db, prog)
+        if not n_pat and not rnd:
+            continue
+        rows = tracking(db, rnd, prog)
+        counts = defaultdict(int)
+        for r in rows:
+            counts[r["status"]] += 1
+        blocks.append({"program": prog, "label": label, "rnd": rnd, "counts": counts,
+                       "total": len(rows), "n_patients": n_pat})
+    open_rounds = [b["rnd"] for b in blocks if b["rnd"]]
+    return render(request, "painel.html", blocks=blocks,
+                  pend=pendencias(db, open_rounds),
                   n_patients=db.query(Patient).filter(Patient.active.is_(True)).count(),
                   n_therapists=db.query(Therapist).filter(Therapist.active.is_(True)).count())
 
 
 # ======================= acompanhamento / links =======================
 @router.get("/painel/acompanhamento")
-def tracking_page(request: Request, f: str = "", db: Session = Depends(get_db),
+def tracking_page(request: Request, f: str = "", p: str = "", db: Session = Depends(get_db),
                   user: User = Depends(need())):
-    rnd = open_round(db)
-    rows = tracking(db, rnd)
+    prog = program_of(p)
+    rnd = open_round(db, prog)
+    rows = tracking(db, rnd, prog)
     for r in rows:
         r["link"] = guardian_link(request, r["g"].token)
         r["msg"] = invite_text(r["g"].name, r["p"].first_name, r["link"])
@@ -121,7 +130,7 @@ def tracking_page(request: Request, f: str = "", db: Session = Depends(get_db),
     elif f:
         rows = [r for r in rows if r["status"] == f]
     return render(request, "acompanhamento.html", rnd=rnd, rows=rows, f=f, counts=counts,
-                  labels=STATUS_LABEL)
+                  labels=STATUS_LABEL, prog=prog)
 
 
 # ======================= rodadas =======================
@@ -141,11 +150,16 @@ async def round_create(request: Request, db: Session = Depends(get_db),
     if not name:
         flash(request, "Dê um nome para a rodada.", "erro")
         return go("/painel/rodadas")
-    for r in db.query(Round).filter(Round.status == "open"):
+    prog = program_of(form.get("program"), "")
+    if not prog:
+        flash(request, "Escolha se a rodada é do Intensivo ou do Particular.", "erro")
+        return go("/painel/rodadas")
+    for r in db.query(Round).filter(Round.status == "open", Round.program == prog):
         r.status, r.closed_at = "closed", utcnow()
-    db.add(Round(name=name, status="open"))
+    db.add(Round(name=name, status="open", program=prog))
     db.commit()
-    flash(request, f"Rodada “{name}” aberta. Os links dos responsáveis já estão valendo.")
+    flash(request, f"Rodada “{name}” ({PROGRAMS[prog]}) aberta. Os links dos responsáveis "
+                   f"do {PROGRAMS[prog]} já estão valendo.")
     return go("/painel/rodadas")
 
 
@@ -176,7 +190,8 @@ async def round_update(rid: int, request: Request, db: Session = Depends(get_db)
         r.status, r.closed_at = "closed", utcnow()
         flash(request, "Rodada encerrada.")
     elif action == "open":
-        for o in db.query(Round).filter(Round.status == "open", Round.id != rid):
+        for o in db.query(Round).filter(Round.status == "open", Round.id != rid,
+                                        Round.program == r.program):
             o.status, o.closed_at = "closed", utcnow()
         r.status, r.closed_at = "open", None
         flash(request, "Rodada reaberta.")
@@ -188,10 +203,14 @@ async def round_update(rid: int, request: Request, db: Session = Depends(get_db)
 
 # ======================= pacientes =======================
 @router.get("/painel/pacientes")
-def patients_page(request: Request, db: Session = Depends(get_db), user: User = Depends(need())):
-    patients = (db.query(Patient).options(joinedload(Patient.guardians), joinedload(Patient.assignments))
-                .order_by(Patient.active.desc(), Patient.name).all())
-    return render(request, "pacientes.html", patients=patients)
+def patients_page(request: Request, p: str = "", db: Session = Depends(get_db), user: User = Depends(need())):
+    q = db.query(Patient).options(joinedload(Patient.guardians), joinedload(Patient.assignments))
+    prog = p if p in PROGRAMS else ""
+    if prog:
+        q = q.filter(Patient.program == prog)
+    patients = q.order_by(Patient.active.desc(), Patient.name).all()
+    counts = dict(db.query(Patient.program, func.count(Patient.id)).group_by(Patient.program).all())
+    return render(request, "pacientes.html", patients=patients, prog=prog, counts=counts)
 
 
 @router.post("/painel/pacientes")
@@ -201,7 +220,11 @@ async def patient_create(request: Request, db: Session = Depends(get_db), user: 
     if not name:
         flash(request, "Informe o nome da criança.", "erro")
         return go("/painel/pacientes")
-    p = Patient(name=name)
+    prog = program_of(form.get("program"), "")
+    if not prog:
+        flash(request, "Marque se a criança é do Intensivo ou do Particular.", "erro")
+        return go("/painel/pacientes")
+    p = Patient(name=name, program=prog)
     db.add(p)
     db.commit()
     return go(f"/painel/pacientes/{p.id}")
@@ -255,6 +278,7 @@ async def patient_update(pid: int, request: Request, db: Session = Depends(get_d
         p.name = name
     p.active = form.get("active") == "1"
     p.notes = clean(form.get("notes"), 500)
+    p.program = program_of(form.get("program"), p.program)
     db.commit()
     flash(request, "Dados salvos.")
     return go(f"/painel/pacientes/{pid}")
@@ -541,25 +565,28 @@ async def question_update(qid: int, request: Request, db: Session = Depends(get_
 
 # ======================= resultados =======================
 def _pick_round(db, rodada: str):
+    """rodada = id de uma rodada, ou "todas-intensivo" / "todas-particular".
+
+    Devolve (rodadas, rodada escolhida, programa). Sem rodada escolhida = todas do programa.
+    """
     rounds = db.query(Round).order_by(Round.id.desc()).all()
-    if rodada == "todas":
-        return rounds, None, True
-    rnd = None
-    if rodada.isdigit():
-        rnd = db.get(Round, int(rodada))
+    if rodada.startswith("todas"):
+        return rounds, None, program_of(rodada.partition("-")[2])
+    rnd = db.get(Round, int(rodada)) if rodada.isdigit() else None
     if not rnd and rounds:
         rnd = rounds[0]
-    return rounds, rnd, False
+    return rounds, rnd, (rnd.program if rnd else "intensivo")
 
 
 @router.get("/painel/resultados")
 def results_page(request: Request, rodada: str = "", db: Session = Depends(get_db),
                  user: User = Depends(need(*GESTAO))):
-    rounds, rnd, all_rounds = _pick_round(db, rodada)
-    rid = None if all_rounds else (rnd.id if rnd else -1)
-    data = scores(db, rid)
-    return render(request, "resultados.html", rounds=rounds, rnd=rnd, all_rounds=all_rounds,
-                  data=data, clinic_notes=clinic_comments(db, rid), questions=scored_questions(db), min_n=MIN_RESPOSTAS)
+    rounds, rnd, prog = _pick_round(db, rodada)
+    rid = rnd.id if rnd else None
+    data = scores(db, rid, prog)
+    return render(request, "resultados.html", rounds=rounds, rnd=rnd, all_rounds=rnd is None,
+                  prog=prog, data=data, clinic_notes=clinic_comments(db, rid, prog),
+                  questions=scored_questions(db), min_n=MIN_RESPOSTAS, min_cov=MIN_COBERTURA)
 
 
 @router.get("/painel/resultados/terapeuta/{tid}")
@@ -575,11 +602,16 @@ def result_therapist(tid: int, request: Request, db: Session = Depends(get_db),
 @router.get("/painel/resultados/exportar")
 def results_export(rodada: str = "", db: Session = Depends(get_db),
                    user: User = Depends(need(*GESTAO))):
-    rounds, rnd, all_rounds = _pick_round(db, rodada)
-    title = "Todas as rodadas" if all_rounds else (rnd.name if rnd else "Sem rodada")
-    rid = None if all_rounds else (rnd.id if rnd else -1)
-    data = scores(db, rid)
+    rounds, rnd, prog = _pick_round(db, rodada)
+    all_rounds = rnd is None
+    title = (f"Todas as rodadas ({PROGRAMS[prog]})" if all_rounds
+             else f"{rnd.name} ({PROGRAMS[prog]})")
+    rid = rnd.id if rnd else None
+    data = scores(db, rid, prog)
     qs = scored_questions(db)
+
+    def num(v, nd=1):
+        return round(v, nd) if v is not None else None
 
     def qval(q, v):
         if v is None:
@@ -591,16 +623,22 @@ def results_export(rodada: str = "", db: Session = Depends(get_db),
     ws = wb.active
     ws.title = "Terapeutas"
     ws.append([f"Avaliação dos terapeutas: {title}"])
-    ws.append(["Terapeuta", "Nome completo", "Setor", "Nº de avaliações", "Índice geral (%)"]
+    ws.append(["Terapeuta", "Nome completo", "Setor", "Crianças atendidas", "Avaliações esperadas",
+               "Avaliações recebidas", "Cobertura (%)", "Índice (%)", "Índice ajustado (%)"]
               + [f"{q.text} ({'% Sim' if q.kind == 'simnao' else 'média 1 a 5'})" for q in qs])
     for r in data["therapists"]:
-        ws.append([r["t"].name, r["t"].full_name, r["t"].sector, r["n"], round(r["avg"], 1)]
+        ws.append([r["t"].name, r["t"].full_name, r["t"].sector, r["children"], r["expected"],
+                   r["n"], num(r["coverage"] * 100 if r["coverage"] is not None else None),
+                   num(r["avg"]), num(r["adj"])]
                   + [qval(q, r["q"].get(q.id)) for q in qs])
 
     ws2 = wb.create_sheet("Setores")
-    ws2.append(["Setor", "Terapeutas avaliados", "Nº de avaliações", "Índice geral (%)"])
+    ws2.append(["Setor", "Terapeutas avaliados", "Avaliações esperadas", "Avaliações recebidas",
+                "Cobertura (%)", "Índice (%)", "Índice ajustado (%)"])
     for sct in data["sectors"]:
-        ws2.append([sct["name"], sct["therapists"], sct["n"], round(sct["avg"], 1)])
+        ws2.append([sct["name"], sct["therapists"], sct["expected"], sct["n"],
+                    num(sct["coverage"] * 100 if sct["coverage"] is not None else None),
+                    num(sct["avg"]), num(sct["adj"])])
 
     ws3 = wb.create_sheet("Comentários")
     ws3.append(["Rodada", "Terapeuta", "Terapia", "Responsável", "Paciente", "Comentário"])
@@ -608,9 +646,9 @@ def results_export(rodada: str = "", db: Session = Depends(get_db),
          .options(joinedload(Evaluation.therapist), joinedload(Evaluation.answers).joinedload(Answer.question),
                   joinedload(Evaluation.submission).joinedload(Submission.guardian).joinedload(Guardian.patient),
                   joinedload(Evaluation.submission).joinedload(Submission.round))
-         .join(Submission).filter(Evaluation.status == "done"))
-    if rid:
-        q = q.filter(Submission.round_id == rid)
+         .join(Submission).join(Round, Round.id == Submission.round_id)
+         .filter(Evaluation.status == "done"))
+    q = q.filter(Submission.round_id == rid) if rid else q.filter(Round.program == prog)
     for e in q:
         g = e.submission.guardian
         base = [e.submission.round.name, e.therapist.name, e.therapy, g.name, g.patient.name]
@@ -622,7 +660,7 @@ def results_export(rodada: str = "", db: Session = Depends(get_db),
 
     ws5 = wb.create_sheet("Sobre a clínica")
     ws5.append(["Rodada", "Responsável", "Paciente", "Observação ou sugestão"])
-    for sub in clinic_comments(db, rid):
+    for sub in clinic_comments(db, rid, prog):
         ws5.append([sub.round.name, sub.guardian.name, sub.guardian.patient.name, sub.clinic_comment])
 
     if rnd and not all_rounds:
@@ -704,7 +742,7 @@ async def user_update(uid: int, request: Request, db: Session = Depends(get_db),
 
 # ======================= importação por planilha =======================
 COLS = ["Paciente", "Responsável 1", "Telefone 1", "Responsável 2", "Telefone 2",
-        "Terapia", "Terapeuta", "Setor", "Para o responsável", "Pendência"]
+        "Terapia", "Terapeuta", "Setor", "Para o responsável", "Pendência", "Programa"]
 COLS_T = ["Terapeuta", "Nome completo", "Setores"]
 
 
@@ -720,7 +758,7 @@ def import_template(user: User = Depends(need())):
     ws.title = "Cronogramas"
     ws.append(COLS)
     ws.append(["Nome da Criança", "Nome da Mãe", "21999990000", "", "", "Fonoaudiologia",
-               "Nome da Terapeuta", "Fonoaudiologia", "", ""])
+               "Nome da Terapeuta", "Fonoaudiologia", "", "", "Intensivo"])
     wt = wb.create_sheet("Terapeutas")
     wt.append(COLS_T)
     wt.append(["Nome da Terapeuta", "Nome Completo da Terapeuta", "Fonoaudiologia"])
@@ -792,7 +830,7 @@ async def import_run(request: Request, db: Session = Depends(get_db), user: User
             continue
         p = db.query(Patient).filter(func.lower(Patient.name) == pname.lower()).first()
         if not p:
-            p = Patient(name=pname)
+            p = Patient(name=pname, program=program_of(cell("Programa")))
             db.add(p)
             db.flush()
             report["patients"] += 1

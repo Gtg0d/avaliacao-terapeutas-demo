@@ -1,18 +1,21 @@
 {% extends "base.html" %}
+{% from "_prog.html" import prog_badge, prog_radio with context %}
 {% block title %}Rodadas{% endblock %}
 {% block body %}
 <h1>Rodadas de avaliação</h1>
-<p class="muted">Só uma rodada fica aberta por vez. Abrir uma nova encerra a anterior. Os links dos responsáveis são sempre os mesmos.</p>
+<p class="muted">Cada rodada é de um programa: <strong>Intensivo</strong> ou <strong>Particular</strong>. Pode haver uma rodada aberta de cada ao mesmo tempo; abrir uma nova encerra só a anterior do mesmo programa. Cada responsável responde à rodada do programa da sua criança, e os resultados dos dois nunca se misturam. Os links são sempre os mesmos.</p>
 <form method="post" class="card row">
   <div class="grow"><label for="n">Nova rodada</label><input id="n" type="text" name="name" placeholder="Ex.: Novembro/2026 – 2ª quinzena" required></div>
+  {{ prog_radio() }}
   <button class="btn">Abrir rodada</button>
 </form>
 <div class="card tablewrap"><table>
-  <thead><tr><th>Rodada</th><th>Situação</th><th>Aberta em</th><th>Encerrada em</th><th class="r">Concluíram</th><th></th></tr></thead>
+  <thead><tr><th>Rodada</th><th>Programa</th><th>Situação</th><th>Aberta em</th><th>Encerrada em</th><th class="r">Concluíram</th><th></th></tr></thead>
   <tbody>
   {% for r in rounds %}
   <tr>
     <td>{{ r.name }}</td>
+    <td>{{ prog_badge(r.program) }}</td>
     <td><span class="badge {{ 'ok' if r.status == 'open' }}">{{ "Aberta" if r.status == "open" else "Encerrada" }}</span></td>
     <td class="num">{{ r.created_at|dt }}</td><td class="num">{{ r.closed_at|dt }}</td>
     <td class="r num">{{ n.get(r.id, 0) }}</td>
@@ -25,7 +28,7 @@
       </form>
     </div></td>
   </tr>
-  {% else %}<tr><td colspan="6" class="muted">Nenhuma rodada criada ainda.</td></tr>{% endfor %}
+  {% else %}<tr><td colspan="7" class="muted">Nenhuma rodada criada ainda.</td></tr>{% endfor %}
   </tbody>
 </table></div>
 {% endblock %}

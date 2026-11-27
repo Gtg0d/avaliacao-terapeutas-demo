@@ -8,6 +8,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import routes_admin, routes_public
 from .core import BASE_DIR, LoginRequired, hash_password, render
+from sqlalchemy import inspect, text
+
 from .db import Base, SessionLocal, engine
 from .models import Question, User
 
@@ -73,9 +75,29 @@ PERGUNTAS_INICIAIS = [
 ]
 
 
+# Colunas adicionadas depois que o sistema entrou no ar. create_all() só cria tabelas
+# novas, então cada coluna nova de uma tabela existente entra aqui e é criada uma única vez.
+# Os dados que já existem recebem o valor padrão (tudo o que havia era do intensivo).
+MIGRACOES = [
+    ("patients", "program", "VARCHAR(20) NOT NULL DEFAULT 'intensivo'"),
+    ("rounds", "program", "VARCHAR(20) NOT NULL DEFAULT 'intensivo'"),
+]
+
+
+def migrate():
+    existing = {t: {c["name"] for c in inspect(engine).get_columns(t)}
+                for t in {t for t, _, _ in MIGRACOES}}
+    with engine.begin() as conn:
+        for table, column, ddl in MIGRACOES:
+            if column not in existing[table]:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+                print(f"Migração: coluna {table}.{column} criada.")
+
+
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(engine)
+    migrate()
     db = SessionLocal()
     try:
         if db.query(User).count() == 0:

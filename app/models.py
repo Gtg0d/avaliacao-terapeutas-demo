@@ -42,6 +42,7 @@ class Patient(Base):
     name: Mapped[str] = mapped_column(String(160))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    program: Mapped[str] = mapped_column(String(20), default="intensivo")  # intensivo | particular
     guardians: Mapped[list["Guardian"]] = relationship(
         back_populates="patient", cascade="all, delete-orphan", order_by="Guardian.id")
     assignments: Mapped[list["Assignment"]] = relationship(
@@ -95,6 +96,7 @@ class Round(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
     status: Mapped[str] = mapped_column(String(10), default="open")  # open | closed
+    program: Mapped[str] = mapped_column(String(20), default="intensivo")  # a quem a rodada se destina
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

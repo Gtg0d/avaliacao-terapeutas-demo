@@ -1,0 +1,2 @@
+{% macro prog_badge(program) %}<span class="badge prog-{{ program }}">{{ PROGRAMS.get(program, program) }}</span>{% endmacro %}
+{% macro prog_radio(name="program", selected="", required=true) %}<fieldset class="progpick"><legend>Programa</legend>{% for k, v in PROGRAMS.items() %}<label class="check"><input type="radio" name="{{ name }}" value="{{ k }}" {{ "checked" if k == selected }} {{ "required" if required and loop.first }}> {{ v }}</label>{% endfor %}</fieldset>{% endmacro %}

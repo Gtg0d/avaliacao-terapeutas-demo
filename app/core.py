@@ -20,6 +20,13 @@ CLINIC_NAME = os.getenv("CLINIC_NAME", "Clínica Exemplo")
 BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
 
 ROLES = {"admin": "Administrador", "direcao": "Direção", "recepcao": "Recepção"}
+# Programas de atendimento. Cada rodada é de um programa e os resultados não se misturam.
+PROGRAMS = {"intensivo": "Intensivo", "particular": "Particular"}
+
+
+def program_of(value, default: str = "intensivo") -> str:
+    value = str(value or "").strip().lower()
+    return value if value in PROGRAMS else default
 TODOS = ("admin", "direcao", "recepcao")
 GESTAO = ("admin", "direcao")
 ADMIN = ("admin",)
@@ -77,6 +84,7 @@ def render(request: Request, name: str, status_code: int = 200, **ctx):
     ctx["flashes"] = request.session.pop("flash", [])
     ctx["clinic"] = CLINIC_NAME
     ctx["ROLES"] = ROLES
+    ctx["PROGRAMS"] = PROGRAMS
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
 

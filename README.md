@@ -33,6 +33,8 @@ O formulário não sabia quem estava respondendo, então o trabalho de filtrar f
 - Atendimentos voltados ao responsável (ex.: Psicologia Responsável) são sinalizados e avaliados à parte.
 - Botão "meu filho não é atendido por este profissional": não conta como nota e avisa a recepção de que o
   cronograma pode estar desatualizado.
+- Pacientes separados em dois **programas** (Intensivo e Particular), com rodadas, acompanhamento e
+  resultados próprios: cada responsável cai na rodada do programa da sua criança e os números nunca se misturam.
 
 ### Painel interno, com três perfis
 
@@ -49,12 +51,28 @@ mensagem pronta para cobrar.
 
 ![Resultados por setor e por terapeuta](docs/painel-resultados.png)
 
-**Resultados:** índice de respostas positivas por terapeuta e por setor, percentual de "Sim" em cada pergunta,
-aviso quando há poucas respostas, comentários e exportação para Excel (incluindo quem não respondeu).
+**Resultados:** por terapeuta e por setor, quantas crianças cada um atende, quantas avaliações recebeu de
+quantas deveria receber (cobertura), o índice de respostas positivas e um **índice ajustado pela cobertura**,
+além do percentual de "Sim" em cada pergunta, comentários e exportação para Excel (incluindo quem não respondeu).
+
+O índice ajustado resolve um problema real da pesquisa: um terapeuta com 3 avaliações pode ter recebido todas
+as que devia (atende 3 crianças) ou só um quarto delas (atende 12). O ajuste mistura o índice dele com a média
+geral na proporção do que faltou:
+
+```
+índice ajustado = cobertura × índice do terapeuta + (1 − cobertura) × média geral da rodada
+```
+
+Com 12 de 12 respostas ele é igual ao índice; com 3 de 12, vale 25% o índice e 75% a média. Assim, poucas
+respostas não colocam ninguém no topo nem no fim do ranking.
 
 ![Evolução de um terapeuta](docs/painel-terapeuta.png)
 
 **Evolução:** histórico de cada terapeuta rodada a rodada, com variação e comentários.
+
+![Rodadas por programa](docs/painel-rodadas.png)
+
+**Rodadas:** cada uma é de um programa; pode haver uma aberta de cada ao mesmo tempo.
 
 ![Cadastro de um paciente](docs/painel-paciente.png)
 
@@ -70,6 +88,9 @@ terapeuta que atua em mais de um setor pontuando separadamente em cada um.
 - **PostgreSQL** em produção (SQLite para rodar localmente)
 - HTML e CSS próprios, sem framework de front-end; pensado primeiro para celular
 - Deploy no **Railway** a partir do GitHub
+
+Mudanças de estrutura no banco são aplicadas sozinhas na subida (lista `MIGRACOES` em `app/main.py`), sem
+apagar dados, já que o sistema está em uso.
 
 Cuidados com os dados: links com código aleatório por responsável, senhas com PBKDF2, perfis de acesso
 separados, páginas fora dos buscadores e apenas o mínimo de dados pessoais (sem diagnóstico ou prontuário).
@@ -87,7 +108,7 @@ uvicorn app.main:app --reload
 Abra http://127.0.0.1:8000 e entre com `admin`, `direcao` ou `recepcao` (senha `demo1234`).
 Em **Acompanhamento** você copia o link de um responsável para ver a tela dos pais.
 
-`DEMO=1` carrega pacientes, terapeutas e três rodadas com respostas sorteadas. Não use em produção.
+`DEMO=1` carrega pacientes dos dois programas, terapeutas e rodadas com respostas sorteadas. Não use em produção.
 
 ## Publicar
 

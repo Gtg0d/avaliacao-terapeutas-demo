@@ -23,7 +23,7 @@ def _context(db: Session, token: str):
     if not g or not g.active or not g.patient.active:
         return None, ("Link não encontrado",
                       "Este link não é válido. Peça um novo link na recepção da clínica.", 404)
-    rnd = open_round(db)
+    rnd = open_round(db, g.patient.program)  # cada programa tem a sua rodada
     if not rnd:
         return None, ("Nenhuma avaliação aberta",
                       "No momento não há avaliação em andamento. "

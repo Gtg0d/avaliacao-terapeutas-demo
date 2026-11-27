@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% from "_avatar.html" import avatar %}
+{% from "_prog.html" import prog_badge, prog_radio with context %}
 {% block title %}{{ p.name }}{% endblock %}
 {% block body %}
 <p class="small"><a href="/painel/pacientes">← Pacientes</a></p>
-<div class="head"><h1>{{ p.name }} {% if not p.active %}<span class="badge">Inativo</span>{% endif %}</h1></div>
+<div class="head"><h1>{{ p.name }} {{ prog_badge(p.program) }} {% if not p.active %}<span class="badge">Inativo</span>{% endif %}</h1></div>
 <div class="grid2">
 <section class="card">
   <h2>Dados</h2>
   <form method="post">
     <div class="field"><label for="name">Nome da criança</label><input id="name" type="text" name="name" value="{{ p.name }}" required></div>
     <div class="field"><label for="notes">Pendência / observação <span class="muted" style="font-weight:400">(aparece no Início até ser apagada)</span></label><input id="notes" type="text" name="notes" value="{{ p.notes }}" maxlength="500"></div>
+    <div class="field">{{ prog_radio(selected=p.program) }}</div>
     <div class="field"><label class="check"><input type="checkbox" name="active" value="1" {{ "checked" if p.active }}> Paciente ativo (recebe a avaliação)</label></div>
     <div class="actions">
       <button class="btn">Salvar</button>
